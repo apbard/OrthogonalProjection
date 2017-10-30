@@ -68,6 +68,13 @@ class OrthoProj():
     _axisXY = None
     _axis3D = None
 
+    _labels = None
+    _lines = None
+
+    _axisX_label = 'X axis'
+    _axisY_label = 'Y axis'
+    _axisZ_label = 'Z axis'
+
     def __init__(self, title=None):
         """
         Build an :class:`OrthoProj` object
@@ -79,10 +86,11 @@ class OrthoProj():
         """
 
         fig = plt.figure(title)
+        fig.suptitle(title)
         axisXZ = fig.add_subplot(221, title="Vertical Plane - XZ")
         axisYZ = fig.add_subplot(222, title="Lateral Plane - YZ")
         axisXY = fig.add_subplot(223, title="Horizontal Plane - XY")
-        axis3D = fig.add_subplot(224, title="3D view - XYZ", projection="3d")
+        axis3D = fig.add_subplot(224, title="3D view", projection="3d")
 
         for ax in [axisXZ, axisYZ, axisXY, axis3D]:
             ax.sync_x_with_x = types.MethodType(sync_x_with_x, ax)
@@ -136,6 +144,43 @@ class OrthoProj():
         self._axisXY = axisXY
         self._axis3D = axis3D
 
+    def set_xlabel(self, xlabel, **kwargs):
+        """
+        Set x axis label
+        Args:
+            xlabel: label of x asis
+            **kwargs: arguments of classical set_xlabel
+        """
+        self._update_axis_labels(xlabel=xlabel)
+
+    def set_ylabel(self, ylabel, **kwargs):
+        """
+        Set y axis label
+        Args:
+            ylabel: label of y asis
+            **kwargs: arguments of classical set_ylabel
+        """
+        self._update_axis_labels(ylabel=ylabel)
+
+    def set_zlabel(self, zlabel, **kwargs):
+        """
+        Set z axis label
+        Args:
+            zlabel: label of z asis
+            **kwargs: arguments of classical set_zlabel
+        """
+        self._update_axis_labels(zlabel=zlabel)
+
+    def set_axis_labels(self, xlabel=None, ylabel=None, zlabel=None):
+        """
+        Set axis labels
+        Args:
+            xlabel: label of x asis
+            ylabel: label of y asis
+            zlabel: label of z asis
+        """
+        self._update_axis_labels(xlabel=xlabel, ylabel=ylabel, zlabel=zlabel)
+
     def plot(self, x, y, z, kwargsXZ=None, kwargsYZ=None, kwargsXY=None,
              kwargs3D=None, kwargsShared=None):
         '''
@@ -160,11 +205,14 @@ class OrthoProj():
         kwargsXY = _merge_dicts(kwargsShared, kwargsXY)
         kwargs3D = _merge_dicts(kwargsShared, kwargs3D)
 
-        self._plot2DGraphs(x, y, z, kwargsXZ, kwargsYZ, kwargsXY)
+        curr_lines = self._plot2DGraphs(x, y, z, kwargsXZ, kwargsYZ, kwargsXY)
         if kwargs3D is None:
             self._axis3D.plot(x, y, z)
         else:
             self._axis3D.plot(x, y, z, **kwargs3D)
+
+        if 'label' in kwargsShared.keys():
+            self._update_labels(curr_lines, kwargsShared['label'])
 
     def scatter(self, x, y, z, kwargsXZ=None, kwargsYZ=None, kwargsXY=None,
                 kwargs3D=None, kwargsShared=None):
@@ -191,10 +239,14 @@ class OrthoProj():
         kwargs3D = _merge_dicts(kwargsShared, kwargs3D)
 
         self._scatter2DGraphs(x, y, z, kwargsXZ, kwargsYZ, kwargsXY)
+
         if kwargs3D is None:
-            self._axis3D.scatter(x, y, z)
+            curr_lines = self._axis3D.scatter(x, y, z)
         else:
-            self._axis3D.scatter(x, y, z, **kwargs3D)
+            curr_lines = self._axis3D.scatter(x, y, z, **kwargs3D)
+
+        if 'label' in kwargsShared.keys():
+            self._update_labels(curr_lines, kwargsShared['label'])
 
     def plot_trisurf(self, x, y, z, kwargsXZ=None, kwargsYZ=None, kwargsXY=None,
                      kwargs3D=None, kwargsShared=None):
@@ -227,12 +279,16 @@ class OrthoProj():
         kwargsXY = _merge_dicts(kwargsShared, kwargsXY)
         kwargs3D = _merge_dicts(kwargsShared, kwargs3D)
 
-        self._plot2DGraphs(X, Y, Z, kwargsXZ, kwargsYZ, kwargsXY)
+        curr_lines = self._plot2DGraphs(X, Y, Z, kwargsXZ, kwargsYZ, kwargsXY)
+
         self._plot2DGraphs(X.T, Y.T, Z.T, kwargsXZ, kwargsYZ, kwargsXY)
         if kwargs3D is None:
             self._axis3D.plot_surface(X, Y, Z)
         else:
             self._axis3D.plot_surface(X, Y, Z, **kwargs3D)
+
+        if 'label' in kwargsShared.keys():
+            self._update_labels(curr_lines, kwargsShared['label'])
 
     def plot_wireframe(self, X, Y, Z, kwargsXZ=None, kwargsYZ=None, kwargsXY=None,
                        kwargs3D=None, kwargsShared=None):
@@ -258,12 +314,15 @@ class OrthoProj():
         kwargsXY = _merge_dicts(kwargsShared, kwargsXY)
         kwargs3D = _merge_dicts(kwargsShared, kwargs3D)
 
-        self._plot2DGraphs(X, Y, Z, kwargsXZ, kwargsYZ, kwargsXY)
+        curr_lines = self._plot2DGraphs(X, Y, Z, kwargsXZ, kwargsYZ, kwargsXY)
         self._plot2DGraphs(X.T, Y.T, Z.T, kwargsXZ, kwargsYZ, kwargsXY)
         if kwargs3D is None:
             self._axis3D.plot_wireframe(X, Y, Z)
         else:
             self._axis3D.plot_wireframe(X, Y, Z, **kwargs3D)
+
+        if 'label' in kwargsShared.keys():
+            self._update_labels(curr_lines, kwargsShared['label'])
 
     def plot_collection(self, x, y, z, kwargsXZ=None, kwargsYZ=None, kwargsXY=None,
                         kwargs3D=None, kwargsShared=None):
@@ -285,17 +344,36 @@ class OrthoProj():
                 Arguments specified via specific kwargs will always have the
                 precedence and won't be overwritten.
         '''
+        self._check_label(kwargsXZ=kwargsXZ, kwargsYZ=kwargsYZ,
+                          kwargsXY=kwargsXY, kwargs3D=kwargs3D)
+
         kwargsXZ = _merge_dicts(kwargsShared, kwargsXZ)
         kwargsYZ = _merge_dicts(kwargsShared, kwargsYZ)
         kwargsXY = _merge_dicts(kwargsShared, kwargsXY)
         kwargs3D = _merge_dicts(kwargsShared, kwargs3D)
 
-        self._collection2DGraphs(x, y, z, kwargsXZ, kwargsYZ, kwargsXY)
+        curr_lines = self._collection2DGraphs(x, y, z, kwargsXZ, kwargsYZ, kwargsXY)
+
         verts = [list(zip(x, y, z))]
         if kwargs3D is None:
             self._axis3D.add_collection3d(Poly3DCollection(verts))
         else:
             self._axis3D.add_collection3d(Poly3DCollection(verts, **kwargs3D))
+
+        if "label" in kwargsShared.keys():
+            self._update_labels(curr_lines, kwargsShared['label'])
+
+    def legend(self, **kwargs):
+        """
+        Plot legend for all figures
+        Args:
+            kwargs: classical arguments to legend function
+
+        Returns:
+
+        """
+        if self._lines is not None:
+            self._fig.legend(self._lines, self._labels, **kwargs)
 
     def show(self, block=False):
         """
@@ -318,9 +396,9 @@ class OrthoProj():
         Function that plot data on the 2D axis as a simple plot
         """
         if kwargsXZ is None:
-            self._axisXZ.plot(x, z)
+            curr_lines = self._axisXZ.plot(x, z)
         else:
-            self._axisXZ.plot(x, z, **kwargsXZ)
+            curr_lines = self._axisXZ.plot(x, z, **kwargsXZ)
 
         if kwargsYZ is None:
             self._axisYZ.plot(y, z)
@@ -332,14 +410,16 @@ class OrthoProj():
         else:
             self._axisXY.plot(x, y, **kwargsXY)
 
+        return curr_lines
+
     def _scatter2DGraphs(self, x, y, z, kwargsXZ=None, kwargsYZ=None, kwargsXY=None):
         """
         Function that plot data on the 2D axis as a scatter plot
         """
         if kwargsXZ is None:
-            self._axisXZ.scatter(x, z)
+            curr_lines = self._axisXZ.scatter(x, z)
         else:
-            self._axisXZ.scatter(x, z, **kwargsXZ)
+            curr_lines = self._axisXZ.scatter(x, z, **kwargsXZ)
 
         if kwargsYZ is None:
             self._axisYZ.scatter(y, z)
@@ -351,6 +431,8 @@ class OrthoProj():
         else:
             self._axisXY.scatter(x, y, **kwargsXY)
 
+        return curr_lines
+
     def _collection2DGraphs(self, x, y, z, kwargsXZ=None, kwargsYZ=None, kwargsXY=None):
         """
         Function that plot data on the 2D axis as collections
@@ -361,9 +443,9 @@ class OrthoProj():
         vertyz = [list(zip(y, z))]
 
         if kwargsXY is None:
-            self._axisXY.add_collection(PolyCollection(vertxy))
+            curr_lines = self._axisXY.add_collection(PolyCollection(vertxy))
         else:
-            self._axisXY.add_collection(PolyCollection(vertxy, **kwargsXY))
+            curr_lines = self._axisXY.add_collection(PolyCollection(vertxy, **kwargsXY))
         if kwargsXZ is None:
             self._axisXZ.add_collection(PolyCollection(vertxz))
         else:
@@ -372,3 +454,55 @@ class OrthoProj():
             self._axisYZ.add_collection(PolyCollection(vertyz))
         else:
             self._axisYZ.add_collection(PolyCollection(vertyz, **kwargsYZ))
+
+        return curr_lines
+
+    def _update_labels(self, new_lines, new_labels):
+        if self._lines is None:
+            self._lines = [new_lines[0] if isinstance(new_lines, list) else new_lines, ]
+            # self._lines = [new_lines, ]
+            self._labels = [new_labels, ]
+        else:
+            self._lines.append(new_lines[0] if isinstance(new_lines, list) else new_lines)
+            self._labels.append(new_labels)
+
+    def _update_axis_titles(self):
+        self._axisXY.set_title("{} - {}".format(self._axisX_label, self._axisY_label))
+        self._axisXZ.set_title("{} - {}".format(self._axisX_label, self._axisZ_label))
+        self._axisYZ.set_title("{} - {}".format(self._axisY_label, self._axisZ_label))
+
+    def _update_axis_labels(self, xlabel=None, ylabel=None, zlabel=None, **kwargs):
+        if xlabel is not None:
+            self._axisX_label = xlabel
+            self._axisXY.set_xlabel(xlabel, **kwargs)
+            #self._axisXZ.set_xlabel(xlabel, **kwargs)
+            self._axis3D.set_xlabel(xlabel, **kwargs)
+
+        if ylabel is not None:
+            self._axisY_label = ylabel
+            self._axisXY.set_ylabel(ylabel, **kwargs)
+            self._axisYZ.set_ylabel(ylabel, **kwargs)
+            self._axis3D.set_ylabel(ylabel, **kwargs)
+
+        if zlabel is not None:
+            self._axisZ_label = zlabel
+            self._axisYZ.set_ylabel(zlabel, **kwargs)
+            self._axisXZ.set_ylabel(zlabel, **kwargs)
+            self._axis3D.set_zlabel(zlabel, **kwargs)
+
+        self._update_axis_titles()
+
+    def _check_label(self, kwargsXZ=None, kwargsYZ=None, kwargsXY=None, kwargs3D=None):
+        if kwargsXZ is not None and 'label' in kwargsXZ:
+            kwargsXZ.pop('label')
+            print("Label ignored in kwargsXZ: can only be used in kwargsShared!")
+        if kwargsYZ is not None and 'label' in kwargsYZ:
+            kwargsYZ.pop('label')
+            print("Label ignored in kwargsYZ: can only be used in kwargsShared!")
+        if kwargsXY is not None and 'label' in kwargsXY:
+            kwargsXY.pop('label')
+            print("Label ignored in kwargsXY: can only be used in kwargsShared!")
+        if kwargs3D is not None and 'label' in kwargs3D:
+            kwargs3D.pop('label')
+            print("Label ignored in kwargs3D: can only be used in kwargsShared!")
+            
