@@ -97,15 +97,29 @@ for i in range(int(faces)):
                             kwargsYZ={'zorder': -min(x[i])},
                             kwargsXY={'zorder': max(z[i])},
                             kwargsShared={"facecolor": cm.jet(i / faces)})
-
 # not blocking show
-example.show(block=False)
+example.show()
 
 # another wireframe example
 wireframe = OrthoProj("Wireframe")
 X, Y, Z = sample_data()
 wireframe.plot_wireframe(X, Y, Z, kwargs3D={'rstride': 1, 'cstride': 1},
                          kwargsShared={'color': 'k'})
-
 # a blocking show
-wireframe.show(block=True)
+wireframe.show()
+
+example_legend = OrthoProj(title="Example_legend")
+x, y, z = cube_data(0.5, offset=(-0.25, -0.25, 0.25))
+xy = [list(zip(x[0], y[0])),]
+
+example_legend.plot_collection(x[0], y[0], z[0], kwargs3D={'label': 'goofy'},
+                               kwargsShared={"color": "b", "label": "collection"},)
+example_legend.scatter(np.random.random((5, )),  np.random.random((5, )), np.random.random((5, )),
+                       kwargsShared={"color": "r", "label": "scatter"},)
+example_legend.scatter(np.random.random((5, )),  np.random.random((5, )), np.random.random((5, )),
+                       kwargsShared={"color": "g", "label": "scatter2"},)
+example_legend.set_xlabel('Time')
+example_legend.set_ylabel('Space')
+example_legend.set_zlabel('Color')
+example_legend.legend()
+example_legend.show(block=True)
